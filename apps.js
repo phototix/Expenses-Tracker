@@ -370,10 +370,34 @@ async function apiRequest(path, method, payload = {}) {
     return data;
 }
 
-function logoutCloudAccount(showFeedback = true) {
+function clearLocalExpenseData() {
+
+    expenses = [];
+    monthlyIncome = 0;
+    currentFilter = "all";
+
+    localStorage.setItem("expenses", JSON.stringify(expenses));
+    localStorage.setItem("monthlyIncome", String(monthlyIncome));
+    localStorage.removeItem(LAST_SYNC_STORAGE_KEY);
+
+    const incomeInput = document.getElementById("incomeInput");
+
+    if (incomeInput) {
+        incomeInput.value = "";
+    }
+
+    renderExpenses();
+}
+
+function logoutCloudAccount(showFeedback = true, clearLocalData = false) {
 
     deleteCookie(PASSWORD_KEY_COOKIE);
     clearProfile();
+
+    if (clearLocalData) {
+        clearLocalExpenseData();
+    }
+
     updateAuthStatusText();
 
     if (showFeedback) {
@@ -666,7 +690,7 @@ function initializeAuthControls() {
     }
 
     if (logoutBtn) {
-        logoutBtn.addEventListener("click", () => logoutCloudAccount(true));
+        logoutBtn.addEventListener("click", () => logoutCloudAccount(true, true));
     }
 }
 
