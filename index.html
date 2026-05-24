@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Expense Tracker</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom CSS -->
+    <link href="styles.css?v=5" rel="stylesheet">
+</head>
+<body>
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+
+        <div>
+            <h2 class="fw-bold mb-0">Expense Tracker</h2>
+            <small class="text-muted">LocalStorage Saved</small>
+        </div>
+
+        <div class="d-flex gap-2">
+
+            <button class="btn btn-dark" onclick="openSettingsModal()">
+                <i class="bi bi-gear-fill"></i> Settings
+            </button>
+
+            <button class="btn btn-success" onclick="openChartModal()">
+                <i class="bi bi-pie-chart-fill"></i> View Summary
+            </button>
+
+            <button class="btn btn-primary" onclick="openAddModal()">
+                <i class="bi bi-plus-lg"></i> Add Expense
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- Filter -->
+
+    <div class="card shadow-sm mb-3">
+
+        <div class="card-body">
+
+            <div class="row g-3 align-items-end">
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Filter By Month
+                    </label>
+
+                    <select class="form-select" id="monthFilter">
+                    </select>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Summary Cards -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-4">
+            <div class="card summary-income shadow-sm">
+                <div class="card-body">
+                    <h6>Monthly Income</h6>
+                    <h2 id="monthlyIncome">$0.00</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-expense shadow-sm">
+                <div class="card-body">
+                    <h6>Total Expenses</h6>
+                    <h2 id="totalExpense">$0.00</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-balance shadow-sm">
+                <div class="card-body">
+                    <h6>Remaining Balance</h6>
+                    <h2 id="remainingBalance">$0.00</h2>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Table -->
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+
+                <table class="table align-middle">
+
+                    <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th width="140">Actions</th>
+                    </tr>
+                    </thead>
+
+                    <tbody id="expenseTableBody"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Expense Modal -->
+
+<div class="modal fade" id="expenseModal" tabindex="-1">
+
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <form id="expenseForm">
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title" id="modalTitle">
+                        Add Expense
+                    </h5>
+
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <input type="hidden" id="expenseId">
+
+                    <div class="mb-3">
+
+                        <label class="form-label">Title</label>
+
+                        <select class="form-select" id="title" required>
+                        </select>
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">Category</label>
+
+                        <select class="form-select" id="category" required>
+                        </select>
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">Amount</label>
+
+                        <input
+                                type="number"
+                                step="0.01"
+                                class="form-control"
+                                id="amount"
+                                required
+                        >
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">Date</label>
+
+                        <input
+                                type="date"
+                                class="form-control"
+                                id="date"
+                                required
+                        >
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="submit" class="btn btn-primary">
+                        Save
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- Settings Modal -->
+
+<div class="modal fade" id="settingsModal" tabindex="-1">
+
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <form id="settingsForm">
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title">
+                        User Settings
+                    </h5>
+
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <!-- Cloud Account -->
+
+                    <div class="border rounded p-3 bg-light mb-4">
+
+                        <h6 class="fw-bold mb-3">
+                            Cloud Account
+                        </h6>
+
+                        <div class="small text-muted mb-3" id="authStatusText">
+                            Not logged in
+                        </div>
+
+                        <div class="row g-2 mb-2" id="authCredentialFields">
+
+                            <div class="col-12">
+
+                                <input
+                                        type="email"
+                                        class="form-control"
+                                        id="authEmail"
+                                        placeholder="Email"
+                                >
+
+                            </div>
+
+                            <div class="col-12">
+
+                                <input
+                                        type="password"
+                                        class="form-control"
+                                        id="authPassword"
+                                        placeholder="Password"
+                                >
+
+                            </div>
+
+                        </div>
+
+                        <div class="d-grid gap-2" id="authGuestActions">
+
+                            <button
+                                    type="button"
+                                    class="btn btn-outline-primary"
+                                    id="registerBtn">
+
+                                <i class="bi bi-person-plus"></i>
+                                Register
+
+                            </button>
+
+                            <button
+                                    type="button"
+                                    class="btn btn-primary"
+                                    id="loginBtn">
+
+                                <i class="bi bi-box-arrow-in-right"></i>
+                                Login
+
+                            </button>
+
+                            </div>
+
+                            <div class="d-grid gap-2" id="authMemberActions">
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-success"
+                                    id="syncNowBtn">
+
+                                <i class="bi bi-arrow-repeat"></i>
+                                Sync Now
+
+                            </button>
+
+                            <button
+                                    type="button"
+                                    class="btn btn-outline-danger"
+                                    id="logoutBtn">
+
+                                <i class="bi bi-box-arrow-right"></i>
+                                Logout
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Monthly Income -->
+
+                    <div class="mb-4">
+
+                        <label class="form-label">
+                            Monthly Income
+                        </label>
+
+                        <input
+                                type="number"
+                                step="0.01"
+                                class="form-control"
+                                id="incomeInput"
+                                placeholder="Enter your monthly income"
+                                required
+                        >
+
+                    </div>
+
+                    <!-- Backup Restore -->
+
+                    <div class="border rounded p-3 bg-light">
+
+                        <h6 class="fw-bold mb-3">
+                            Backup & Restore
+                        </h6>
+
+                        <div class="d-grid gap-2">
+
+                            <button
+                                    type="button"
+                                    class="btn btn-success"
+                                    onclick="downloadBackup()">
+
+                                <i class="bi bi-download"></i>
+                                Download Backup
+
+                            </button>
+
+                            <button
+                                    type="button"
+                                    class="btn btn-primary"
+                                    onclick="document.getElementById('restoreFile').click()">
+
+                                <i class="bi bi-upload"></i>
+                                Restore Backup
+
+                            </button>
+
+                            <input
+                                    type="file"
+                                    id="restoreFile"
+                                    accept=".json"
+                                    hidden
+                            >
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button class="btn btn-primary" type="submit">
+                        Save Settings
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- Chart Modal -->
+
+<div class="modal fade" id="chartModal" tabindex="-1">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title">
+                    Expense Summary by Category
+                </h5>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <div class="chart-wrapper">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+
+                <div class="mt-4" id="categorySummaryList"></div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- Toast -->
+
+<div class="toast-container position-fixed top-0 end-0 p-3">
+
+    <div id="liveToast" class="toast align-items-center text-bg-success border-0">
+
+        <div class="d-flex">
+
+            <div class="toast-body" id="toastMessage">
+                Saved
+            </div>
+
+            <button
+                    type="button"
+                    class="btn-close btn-close-white me-2 m-auto"
+                    data-bs-dismiss="toast">
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Bootstrap JS -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="apps.js?v=5"></script>
+
+</body>
+</html>
