@@ -28,6 +28,11 @@ body {
     background: #f3f6ff;
 }
 
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+}
+
 .amount {
     font-weight: bold;
 }

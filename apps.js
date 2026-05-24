@@ -13,6 +13,8 @@ const RESERVED_SYNC_KEYS = [PROFILE_STORAGE_KEY, LAST_SYNC_STORAGE_KEY];
 const snapshotFilePath = "snapshot-2026-05.json";
 
 let currentFilter = "all";
+let currentSortKey = "";
+let currentSortDirection = "asc";
 
 const tableBody = document.getElementById("expenseTableBody");
 
@@ -879,6 +881,86 @@ function getFilteredExpenses() {
     });
 }
 
+function getSortedExpenses(expenseList) {
+
+    if (!currentSortKey) {
+        return expenseList;
+    }
+
+    const direction = currentSortDirection === "asc" ? 1 : -1;
+    const sorted = [...expenseList];
+
+    sorted.sort((a, b) => {
+
+        if (currentSortKey === "amount") {
+            return (parseFloat(a.amount) - parseFloat(b.amount)) * direction;
+        }
+
+        if (currentSortKey === "date") {
+            return (new Date(a.date) - new Date(b.date)) * direction;
+        }
+
+        const textA = String(a[currentSortKey] || "").toLowerCase();
+        const textB = String(b[currentSortKey] || "").toLowerCase();
+
+        return textA.localeCompare(textB) * direction;
+    });
+
+    return sorted;
+}
+
+function updateSortHeaderIndicators() {
+
+    const headers = document.querySelectorAll("th[data-sort-key]");
+
+    headers.forEach((header) => {
+
+        const icon = header.querySelector(".sort-indicator");
+        const headerSortKey = header.dataset.sortKey;
+
+        header.setAttribute("aria-sort", "none");
+
+        if (!icon) {
+            return;
+        }
+
+        icon.className = "bi bi-arrow-down-up ms-1 sort-indicator";
+
+        if (headerSortKey === currentSortKey) {
+            header.setAttribute("aria-sort", currentSortDirection === "asc" ? "ascending" : "descending");
+            icon.className = currentSortDirection === "asc"
+                ? "bi bi-sort-up ms-1 sort-indicator"
+                : "bi bi-sort-down ms-1 sort-indicator";
+        }
+    });
+}
+
+function initializeTableSorting() {
+
+    const headers = document.querySelectorAll("th[data-sort-key]");
+
+    headers.forEach((header) => {
+
+        header.addEventListener("click", () => {
+
+            const selectedSortKey = header.dataset.sortKey;
+
+            if (!selectedSortKey) {
+                return;
+            }
+
+            if (currentSortKey === selectedSortKey) {
+                currentSortDirection = currentSortDirection === "asc" ? "desc" : "asc";
+            } else {
+                currentSortKey = selectedSortKey;
+                currentSortDirection = "asc";
+            }
+
+            renderExpenses();
+        });
+    });
+}
+
 function refreshDropdownOptions() {
 
     const titleList = [...new Set(expenses.map(e => e.title))];
@@ -934,8 +1016,9 @@ function renderExpenses() {
     populateMonthFilter();
 
     const filteredExpenses = getFilteredExpenses();
+    const sortedExpenses = getSortedExpenses(filteredExpenses);
 
-    if (filteredExpenses.length === 0) {
+    if (sortedExpenses.length === 0) {
 
         tableBody.innerHTML = `
             <tr>
@@ -946,7 +1029,7 @@ function renderExpenses() {
         `;
     }
 
-    filteredExpenses.forEach((expense) => {
+    sortedExpenses.forEach((expense) => {
 
         const originalIndex = expenses.indexOf(expense);
 
@@ -979,6 +1062,8 @@ function renderExpenses() {
             </tr>
         `;
     });
+
+    updateSortHeaderIndicators();
 
     renderSummaryCards();
 }
@@ -1222,6 +1307,7 @@ document.getElementById("restoreFile").addEventListener("change", function(e) {
 
 initializeData().then(async () => {
 
+    initializeTableSorting();
     initializeAuthControls();
     renderExpenses();
 
