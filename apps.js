@@ -514,6 +514,23 @@ function triggerCloudSync() {
     });
 }
 
+function uploadExpenseChangeInBackground() {
+
+    if (!isLoggedIn()) {
+        return;
+    }
+
+    showToast("Cloud update started");
+
+    uploadLocalDataToCloud(false).catch(() => {
+        showToast("Cloud update failed");
+    });
+}
+
+function uploadSettingsChangeInBackground() {
+    uploadExpenseChangeInBackground();
+}
+
 function getAuthFormValues() {
 
     const email = (document.getElementById("authEmail")?.value || "").trim();
@@ -1161,7 +1178,7 @@ document.getElementById("expenseForm").addEventListener("submit", function(e) {
 
     renderExpenses();
 
-    triggerCloudSync();
+    uploadExpenseChangeInBackground();
 
     expenseModal.hide();
 });
@@ -1176,7 +1193,7 @@ document.getElementById("settingsForm").addEventListener("submit", function(e) {
 
     renderSummaryCards();
 
-    triggerCloudSync();
+    uploadSettingsChangeInBackground();
 
     settingsModal.hide();
 
