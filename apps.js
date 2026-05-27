@@ -3,6 +3,7 @@
 let expenses = [];
 
 let monthlyIncome = 0;
+let payDay = 1;
 
 const API_BASE_URL = "https://api.brandon.my/v1/api";
 const PROFILE_STORAGE_KEY = "masterauth_profile_v1";
@@ -374,16 +375,23 @@ function clearLocalExpenseData() {
 
     expenses = [];
     monthlyIncome = 0;
+    payDay = 1;
     currentFilter = "all";
 
     localStorage.setItem("expenses", JSON.stringify(expenses));
     localStorage.setItem("monthlyIncome", String(monthlyIncome));
+    localStorage.setItem("payDay", String(payDay));
     localStorage.removeItem(LAST_SYNC_STORAGE_KEY);
 
     const incomeInput = document.getElementById("incomeInput");
+    const payDayInput = document.getElementById("payDayInput");
 
     if (incomeInput) {
         incomeInput.value = "";
+    }
+
+    if (payDayInput) {
+        payDayInput.value = String(payDay);
     }
 
     renderExpenses();
@@ -694,11 +702,23 @@ function initializeAuthControls() {
     }
 }
 
+function sanitizePayDay(value) {
+
+    const parsed = parseInt(value, 10);
+
+    if (Number.isNaN(parsed)) {
+        return 1;
+    }
+
+    return Math.min(31, Math.max(1, parsed));
+}
+
 function loadFromLocalStorage() {
 
     expenses = JSON.parse(localStorage.getItem("expenses")) || [];
 
     monthlyIncome = parseFloat(localStorage.getItem("monthlyIncome")) || 0;
+    payDay = sanitizePayDay(localStorage.getItem("payDay"));
 }
 
 async function loadSnapshotData() {
@@ -714,17 +734,20 @@ async function loadSnapshotData() {
     expenses = Array.isArray(data.expenses) ? data.expenses : [];
 
     monthlyIncome = parseFloat(data.monthlyIncome) || 0;
+    payDay = sanitizePayDay(data.payDay);
 
     saveExpenses();
     saveIncome();
+    savePayDay();
 }
 
 async function initializeData() {
 
     const hasStoredExpenses = localStorage.getItem("expenses") !== null;
     const hasStoredIncome = localStorage.getItem("monthlyIncome") !== null;
+    const hasStoredPayDay = localStorage.getItem("payDay") !== null;
 
-    if (hasStoredExpenses || hasStoredIncome) {
+    if (hasStoredExpenses || hasStoredIncome || hasStoredPayDay) {
         loadFromLocalStorage();
         return;
     }
@@ -746,10 +769,16 @@ function saveIncome() {
     markLocalSyncTimestamp();
 }
 
+function savePayDay() {
+    localStorage.setItem("payDay", payDay);
+    markLocalSyncTimestamp();
+}
+
 function downloadBackup() {
 
     const backupData = {
         monthlyIncome: monthlyIncome,
+        payDay: payDay,
         expenses: expenses,
         exportDate: new Date().toISOString()
     };
@@ -819,15 +848,18 @@ function restoreBackup(file) {
                     expenses = data.expenses || [];
 
                     monthlyIncome = parseFloat(data.monthlyIncome) || 0;
+                    payDay = sanitizePayDay(data.payDay);
 
                     saveExpenses();
                     saveIncome();
+                    savePayDay();
 
                     renderExpenses();
 
                     triggerCloudSync();
 
                     document.getElementById("incomeInput").value = monthlyIncome;
+                    document.getElementById("payDayInput").value = String(payDay);
 
                     showToast("Backup restored");
 
@@ -858,38 +890,138 @@ function showToast(message) {
     toast.show();
 }
 
-function formatMonthYear(dateString) {
+function parseISODateLocal(dateString) {
 
-    const date = new Date(dateString);
+    const parts = String(dateString || "").split("-");
 
-    return date.toLocaleString('default', {
-        month: 'long',
-        year: 'numeric'
+    if (parts.length !== 3) {
+        return null;
+    }
+
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+
+    if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+        return null;
+    }
+
+    return new Date(year, month - 1, day);
+}
+
+function getCycleStartDateForYearMonth(year, monthIndex, selectedPayDay) {
+
+    const monthLastDay = new Date(year, monthIndex + 1, 0).getDate();
+    const startDay = Math.min(selectedPayDay, monthLastDay);
+
+    return new Date(year, monthIndex, startDay);
+}
+
+function getDateKey(date) {
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+function getExpenseCycleStartDate(dateString) {
+
+    const expenseDate = parseISODateLocal(dateString);
+
+    if (!expenseDate) {
+        return null;
+    }
+
+    const currentCycleStart = getCycleStartDateForYearMonth(
+        expenseDate.getFullYear(),
+        expenseDate.getMonth(),
+        payDay
+    );
+
+    if (expenseDate >= currentCycleStart) {
+        return currentCycleStart;
+    }
+
+    return getCycleStartDateForYearMonth(
+        expenseDate.getFullYear(),
+        expenseDate.getMonth() - 1,
+        payDay
+    );
+}
+
+function getExpenseCycleKey(dateString) {
+
+    const cycleStart = getExpenseCycleStartDate(dateString);
+
+    if (!cycleStart) {
+        return "";
+    }
+
+    return getDateKey(cycleStart);
+}
+
+function formatCycleLabelDate(date) {
+
+    return date.toLocaleDateString("default", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
     });
+}
+
+function getCycleRangeLabel(cycleKey) {
+
+    const cycleStart = parseISODateLocal(cycleKey);
+
+    if (!cycleStart) {
+        return cycleKey;
+    }
+
+    const nextCycleStart = getCycleStartDateForYearMonth(
+        cycleStart.getFullYear(),
+        cycleStart.getMonth() + 1,
+        payDay
+    );
+
+    const cycleEnd = new Date(
+        nextCycleStart.getFullYear(),
+        nextCycleStart.getMonth(),
+        nextCycleStart.getDate() - 1
+    );
+
+    return `${formatCycleLabelDate(cycleStart)} - ${formatCycleLabelDate(cycleEnd)}`;
 }
 
 function populateMonthFilter() {
 
     const monthFilter = document.getElementById("monthFilter");
 
-    const uniqueMonths = [...new Set(
-        expenses.map(expense => formatMonthYear(expense.date))
+    const uniqueCycles = [...new Set(
+        expenses.map(expense => getExpenseCycleKey(expense.date)).filter(Boolean)
     )];
 
-    uniqueMonths.sort((a, b) => new Date(b) - new Date(a));
+    uniqueCycles.sort((a, b) => {
+        return parseISODateLocal(b) - parseISODateLocal(a);
+    });
 
     monthFilter.innerHTML = `
-        <option value="all">All Months</option>
+        <option value="all">All Cycles</option>
     `;
 
-    uniqueMonths.forEach(month => {
+    uniqueCycles.forEach(cycleKey => {
 
         monthFilter.innerHTML += `
-            <option value="${month}">
-                ${month}
+            <option value="${cycleKey}">
+                ${getCycleRangeLabel(cycleKey)}
             </option>
         `;
     });
+
+    if (currentFilter !== "all" && !uniqueCycles.includes(currentFilter)) {
+        currentFilter = "all";
+    }
 
     monthFilter.value = currentFilter;
 }
@@ -901,7 +1033,7 @@ function getFilteredExpenses() {
     }
 
     return expenses.filter(expense => {
-        return formatMonthYear(expense.date) === currentFilter;
+        return getExpenseCycleKey(expense.date) === currentFilter;
     });
 }
 
@@ -1167,6 +1299,7 @@ function deleteExpense(index) {
 function openSettingsModal() {
 
     document.getElementById("incomeInput").value = monthlyIncome;
+    document.getElementById("payDayInput").value = String(payDay);
 
     settingsModal.show();
 }
@@ -1297,10 +1430,12 @@ document.getElementById("settingsForm").addEventListener("submit", function(e) {
     e.preventDefault();
 
     monthlyIncome = parseFloat(document.getElementById("incomeInput").value) || 0;
+    payDay = sanitizePayDay(document.getElementById("payDayInput").value);
 
     saveIncome();
+    savePayDay();
 
-    renderSummaryCards();
+    renderExpenses();
 
     uploadSettingsChangeInBackground();
 

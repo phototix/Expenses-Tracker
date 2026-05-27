@@ -5,11 +5,12 @@ A lightweight browser-based expense tracker that stores data in `localStorage`, 
 ## Features
 
 - Add, edit, and delete expenses
-- Filter expenses by month
+- Filter expenses by pay cycle (based on configured pay day)
 - Monthly summary cards:
   - Monthly Income
   - Total Expenses
   - Remaining Balance
+- Configurable Pay Day (`1-31`), defaulting to day `1` when unset
 - Category summary chart (Chart.js)
 - Backup and restore data as JSON
 - Optional cloud account:
@@ -72,6 +73,7 @@ Local keys used by the app include:
 
 - `expenses`
 - `monthlyIncome`
+- `payDay`
 - `masterauth_profile_v1`
 - `masterauth_last_sync_v1`
 - Cookie: `masterauth_password_key`
