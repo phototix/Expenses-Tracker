@@ -1037,6 +1037,19 @@ function getFilteredExpenses() {
     });
 }
 
+function getSummaryCycleCount(expenseList) {
+
+    if (currentFilter !== "all") {
+        return 1;
+    }
+
+    const cycleCount = new Set(
+        expenseList.map(expense => getExpenseCycleKey(expense.date)).filter(Boolean)
+    ).size;
+
+    return Math.max(cycleCount, 1);
+}
+
 function getSortedExpenses(expenseList) {
 
     if (!currentSortKey) {
@@ -1153,16 +1166,18 @@ function renderSummaryCards() {
     let total = 0;
 
     const filteredExpenses = getFilteredExpenses();
+    const cycleCount = getSummaryCycleCount(filteredExpenses);
+    const effectiveIncome = monthlyIncome * cycleCount;
 
     filteredExpenses.forEach(expense => {
         total += parseFloat(expense.amount);
     });
 
-    const balance = monthlyIncome - total;
+    const balance = effectiveIncome - total;
 
     totalExpense.innerText = "$" + total.toFixed(2);
     remainingBalance.innerText = "$" + balance.toFixed(2);
-    monthlyIncomeText.innerText = "$" + monthlyIncome.toFixed(2);
+    monthlyIncomeText.innerText = "$" + effectiveIncome.toFixed(2);
 }
 
 function renderExpenses() {
