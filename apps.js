@@ -12,6 +12,7 @@ const PASSWORD_KEY_COOKIE = "masterauth_password_key";
 const RESERVED_SYNC_KEYS = [PROFILE_STORAGE_KEY, LAST_SYNC_STORAGE_KEY];
 
 const snapshotFilePath = "snapshot-2026-05.json";
+const androidApkPath = "android-app/app/build/outputs/apk/debug/app-debug.apk";
 
 let currentFilter = "all";
 let currentSortKey = "";
@@ -812,6 +813,40 @@ function downloadBackup() {
     }, 100);
 
     showToast("Backup downloaded");
+}
+
+async function downloadAndroidApk() {
+
+    try {
+
+        const response = await fetch(androidApkPath, {
+            method: "HEAD",
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error("apk-not-found");
+        }
+
+        const link = document.createElement("a");
+        link.href = androidApkPath;
+        link.download = "expense-tracker-debug.apk";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        showToast("APK download started");
+        return;
+
+    } catch {
+
+        Swal.fire({
+            icon: "info",
+            title: "APK not available yet",
+            html: "Build the Android app first:<br><code>cd android-app && ./gradlew assembleDebug</code><br><br>Then refresh this page and try again.",
+            confirmButtonText: "Got it"
+        });
+    }
 }
 
 function restoreBackup(file) {

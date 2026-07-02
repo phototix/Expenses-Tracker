@@ -4,6 +4,34 @@ body {
     background: #f5f7fb;
 }
 
+.apk-notice {
+    background: linear-gradient(135deg, #0f5132, #198754);
+    color: #ffffff;
+    z-index: 1030;
+}
+
+.apk-notice-inner {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.apk-notice-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+@media (max-width: 576px) {
+    .apk-notice-inner {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
 .card {
     border: none;
     border-radius: 16px;

@@ -113,3 +113,17 @@ Useful when you want to force browsers to fetch updated `styles.css` and `apps.j
 
 - This is a static front-end app. No Node.js install or build command is required.
 - If cloud API is unavailable, local tracking still works.
+
+## Native Android App
+
+A full native Android version is available in `android-app/`.
+
+- Stack: Kotlin + Jetpack Compose + Room + DataStore + Retrofit + WorkManager
+- Build command:
+
+```bash
+cd android-app
+./gradlew assembleDebug
+```
+
+- APK path: `android-app/app/build/outputs/apk/debug/app-debug.apk`
