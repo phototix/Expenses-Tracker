@@ -539,6 +539,70 @@ async function syncCloudData(showFeedback = false, forcePullFromCloud = false) {
     }
 }
 
+async function pullFromCloud(showFeedback = false) {
+
+    const profile = getProfile();
+    const passwordKey = getCookie(PASSWORD_KEY_COOKIE);
+
+    if (!profile || !passwordKey) {
+        if (showFeedback) {
+            showToast("Please login first");
+        }
+        return;
+    }
+
+    const getPayload = {
+        email: profile.email,
+        apps: profile.apps,
+        password_key: passwordKey
+    };
+
+    const remote = await apiRequest("config/app", "GET", getPayload);
+
+    if (remote.status === "invalid-password_key") {
+        logoutCloudAccount(false);
+        throw new Error("Session expired. Please login again.");
+    }
+
+    const normalized = normalizeRemoteSyncResponse(remote);
+
+    if (!normalized.ok) {
+        throw new Error(normalized.status || "sync-failed");
+    }
+
+    let remoteData = normalized.data;
+
+    if (typeof remoteData === "string") {
+        try {
+            remoteData = JSON.parse(remoteData);
+        } catch {
+            remoteData = {};
+        }
+    }
+
+    if (!remoteData || typeof remoteData !== "object") {
+        remoteData = {};
+    }
+
+    const serverHasData = Object.keys(remoteData).length > 0;
+
+    if (!serverHasData) {
+        if (showFeedback) {
+            showToast("No cloud data found");
+        }
+        return;
+    }
+
+    applyCloudSnapshot(remoteData);
+    loadFromLocalStorage();
+    markLocalSyncTimestamp(normalized.lastSync && normalized.lastSync !== "new-data" ? normalized.lastSync : new Date().toISOString());
+    renderExpenses();
+
+    if (showFeedback) {
+        showToast("Data restored from cloud");
+    }
+}
+
 function triggerCloudSync() {
 
     if (!isLoggedIn()) {
@@ -696,7 +760,7 @@ function initializeAuthControls() {
     }
 
     if (syncNowBtn) {
-        syncNowBtn.addEventListener("click", () => runAuthAction(() => syncCloudData(true, true)));
+        syncNowBtn.addEventListener("click", () => runAuthAction(() => pullFromCloud(true)));
     }
 
     if (logoutBtn) {
