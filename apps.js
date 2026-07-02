@@ -12,7 +12,8 @@ const PASSWORD_KEY_COOKIE = "masterauth_password_key";
 const RESERVED_SYNC_KEYS = [PROFILE_STORAGE_KEY, LAST_SYNC_STORAGE_KEY];
 
 const snapshotFilePath = "snapshot-2026-05.json";
-const androidApkPath = "android-app/app/build/outputs/apk/debug/app-debug.apk";
+const androidApkVersion = "1.0.0";
+const androidApkPath = "apk/expensestracker-latest.apk";
 
 let currentFilter = "all";
 let currentSortKey = "";
@@ -544,7 +545,7 @@ function triggerCloudSync() {
         return;
     }
 
-    syncCloudData(false).catch(() => {
+    uploadLocalDataToCloud(false).catch(() => {
         // Keep local UX uninterrupted for background sync failures.
     });
 }
@@ -695,7 +696,7 @@ function initializeAuthControls() {
     }
 
     if (syncNowBtn) {
-        syncNowBtn.addEventListener("click", () => runAuthAction(() => syncCloudData(true)));
+        syncNowBtn.addEventListener("click", () => runAuthAction(() => syncCloudData(true, true)));
     }
 
     if (logoutBtn) {
@@ -819,7 +820,9 @@ async function downloadAndroidApk() {
 
     try {
 
-        const response = await fetch(androidApkPath, {
+        const cacheBustUrl = `${androidApkPath}?v=${androidApkVersion}`;
+
+        const response = await fetch(cacheBustUrl, {
             method: "HEAD",
             cache: "no-store"
         });
@@ -829,7 +832,7 @@ async function downloadAndroidApk() {
         }
 
         const link = document.createElement("a");
-        link.href = androidApkPath;
+        link.href = cacheBustUrl;
         link.download = "expense-tracker-debug.apk";
         document.body.appendChild(link);
         link.click();
@@ -1514,18 +1517,9 @@ document.getElementById("restoreFile").addEventListener("change", function(e) {
     this.value = "";
 });
 
-initializeData().then(async () => {
+initializeData().then(() => {
 
     initializeTableSorting();
     initializeAuthControls();
     renderExpenses();
-
-    if (isLoggedIn()) {
-        try {
-            await syncCloudData(false);
-            updateAuthStatusText();
-        } catch {
-            // Keep app usable with local data if cloud sync fails on startup.
-        }
-    }
 });

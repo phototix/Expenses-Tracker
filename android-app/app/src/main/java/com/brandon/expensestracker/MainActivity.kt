@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import com.brandon.expensestracker.sync.SyncScheduler
 import com.brandon.expensestracker.ui.AppScreen
 import com.brandon.expensestracker.ui.AppViewModel
 
@@ -17,7 +16,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        SyncScheduler.schedulePeriodicSync(this)
 
         setContent {
             AppScreen(viewModel = viewModel)

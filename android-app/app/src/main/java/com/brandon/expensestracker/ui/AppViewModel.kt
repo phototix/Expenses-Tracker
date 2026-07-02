@@ -277,7 +277,7 @@ class AppViewModel(
     fun syncNow() {
         viewModelScope.launch {
             isLoading.value = true
-            val result = repository.syncCloudData(forcePull = false)
+            val result = repository.syncCloudData(forcePull = true)
             message.value = result.getOrElse { it.message ?: "Sync failed" }
             isLoading.value = false
         }
