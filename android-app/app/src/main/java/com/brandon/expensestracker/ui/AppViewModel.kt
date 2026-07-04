@@ -49,7 +49,7 @@ class AppViewModel(
 ) : ViewModel() {
     private val editorState = MutableStateFlow(ExpenseEditorState())
     private val currentScreen = MutableStateFlow(AppScreen.HOME)
-    private val selectedCycle = MutableStateFlow("all")
+    private val selectedCycle = MutableStateFlow("")
     private val message = MutableStateFlow("")
     private val isLoading = MutableStateFlow(false)
 
@@ -105,6 +105,21 @@ class AppViewModel(
                 }
                 if (payDayInput.value == "1") {
                     payDayInput.value = settings.payDay.toString()
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.expensesFlow.collect { expenses ->
+                if (selectedCycle.value.isBlank() && expenses.isNotEmpty()) {
+                    val payDay = payDayInput.value.toIntOrNull() ?: 1
+                    val latest = expenses.mapNotNull { cycleKey(it.date, payDay) }
+                        .distinct()
+                        .sortedDescending()
+                        .firstOrNull()
+                    if (latest != null) {
+                        selectedCycle.value = latest
+                    }
                 }
             }
         }
@@ -284,11 +299,12 @@ class AppViewModel(
     }
 
     fun filteredExpenses(state: AppUiState): List<Expense> {
-        if (state.selectedCycle == "all") {
+        val cycle = state.selectedCycle
+        if (cycle.isBlank() || cycle == "all") {
             return state.expenses
         }
         return state.expenses.filter { expense ->
-            cycleKey(expense.date, state.payDay) == state.selectedCycle
+            cycleKey(expense.date, state.payDay) == cycle
         }
     }
 
@@ -298,7 +314,8 @@ class AppViewModel(
     }
 
     fun summaryIncome(state: AppUiState): Double {
-        val cycleCount = if (state.selectedCycle == "all") {
+        val cycle = state.selectedCycle
+        val cycleCount = if (cycle.isBlank() || cycle == "all") {
             filteredExpenses(state).mapNotNull { cycleKey(it.date, state.payDay) }.distinct().size.coerceAtLeast(1)
         } else {
             1

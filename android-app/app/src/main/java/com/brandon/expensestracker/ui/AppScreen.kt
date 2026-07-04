@@ -26,8 +26,10 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
@@ -190,6 +192,7 @@ fun AppScreen(viewModel: AppViewModel) {
                             state = state,
                             filteredExpenses = filteredExpenses,
                             cycleOptions = cycleOptions,
+                            selectedCycle = state.selectedCycle,
                             totalExpenses = totalExpenses,
                             effectiveIncome = effectiveIncome,
                             remaining = remaining,
@@ -256,12 +259,14 @@ private fun screenTitle(screen: AppScreen): String {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeScreen(
     modifier: Modifier,
     state: AppUiState,
     filteredExpenses: List<Expense>,
     cycleOptions: List<String>,
+    selectedCycle: String,
     totalExpenses: Double,
     effectiveIncome: Double,
     remaining: Double,
@@ -270,6 +275,8 @@ private fun HomeScreen(
     onEditExpense: (Expense) -> Unit,
     onDeleteExpense: (Expense) -> Unit
 ) {
+    val cycleExpanded = remember { mutableStateOf(false) }
+
     LazyColumn(
         modifier = modifier.padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -285,13 +292,34 @@ private fun HomeScreen(
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Cycle Filter", style = MaterialTheme.typography.titleMedium)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        cycleOptions.forEach { cycle ->
-                            AssistChip(
-                                onClick = { onSelectCycle(cycle) },
-                                label = { Text(cycleLabel(cycle)) }
-                            )
+                    ExposedDropdownMenuBox(
+                        expanded = cycleExpanded.value,
+                        onExpandedChange = { cycleExpanded.value = it }
+                    ) {
+                        OutlinedTextField(
+                            value = cycleLabel(selectedCycle),
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
+                            label = { Text("Cycle Filter") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cycleExpanded.value) },
+                            colors = OutlinedTextFieldDefaults.colors()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = cycleExpanded.value,
+                            onDismissRequest = { cycleExpanded.value = false }
+                        ) {
+                            cycleOptions.forEach { cycle ->
+                                DropdownMenuItem(
+                                    text = { Text(cycleLabel(cycle)) },
+                                    onClick = {
+                                        onSelectCycle(cycle)
+                                        cycleExpanded.value = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
